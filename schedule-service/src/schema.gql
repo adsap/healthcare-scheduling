@@ -1,0 +1,104 @@
+# ------------------------------------------------------
+# THIS FILE WAS AUTOMATICALLY GENERATED (DO NOT MODIFY)
+# ------------------------------------------------------
+
+type Customer {
+  id: String!
+  name: String!
+  email: String!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+}
+
+"""
+A date-time string at UTC, such as 2019-12-03T09:54:33Z, compliant with the date-time format.
+"""
+scalar DateTime
+
+type PaginationInfo {
+  page: Int!
+  limit: Int!
+  total: Int!
+  totalPages: Int!
+}
+
+type CustomersPagination {
+  data: [Customer!]!
+  pagination: PaginationInfo!
+}
+
+type Schedule {
+  id: String!
+  objective: String!
+  customer: Customer!
+  doctor: Doctor!
+  scheduledAt: DateTime!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+}
+
+type Doctor {
+  id: String!
+  name: String!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+  schedules: [Schedule!]
+}
+
+type DoctorsPagination {
+  data: [Doctor!]!
+  pagination: PaginationInfo!
+}
+
+type SchedulesPagination {
+  data: [Schedule!]!
+  pagination: PaginationInfo!
+}
+
+"""Date custom scalar type"""
+scalar Date
+
+type Query {
+  customers(page: Int! = 1, limit: Int! = 10): CustomersPagination!
+  customer(id: String!): Customer!
+  doctors(page: Int! = 1, limit: Int! = 10): DoctorsPagination!
+  doctor(id: String!): Doctor!
+  schedules(page: Int! = 1, limit: Int! = 10, customerId: String, doctorId: String, dateFrom: DateTime, dateTo: DateTime): SchedulesPagination!
+  schedule(id: String!): Schedule!
+}
+
+type Mutation {
+  createCustomer(createCustomerDto: CreateCustomerDto!): Customer!
+  updateCustomer(id: String!, updateCustomerDto: UpdateCustomerDto!): Customer!
+  deleteCustomer(id: String!): Customer!
+  createDoctor(createDoctorDto: CreateDoctorDto!): Doctor!
+  updateDoctor(id: String!, updateDoctorDto: UpdateDoctorDto!): Doctor!
+  deleteDoctor(id: String!): Doctor!
+  createSchedule(createScheduleDto: CreateScheduleDto!): Schedule!
+  deleteSchedule(id: String!): Schedule!
+}
+
+input CreateCustomerDto {
+  name: String!
+  email: String!
+}
+
+input UpdateCustomerDto {
+  name: String
+  email: String
+}
+
+input CreateDoctorDto {
+  name: String!
+}
+
+input UpdateDoctorDto {
+  name: String
+}
+
+input CreateScheduleDto {
+  objective: String!
+  customerId: String!
+  doctorId: String!
+  scheduledAt: DateTime!
+}

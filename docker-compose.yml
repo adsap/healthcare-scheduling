@@ -1,0 +1,96 @@
+version: '3.8'
+
+services:
+  postgres-db:
+    image: postgres:15
+    container_name: postgres-db
+    environment:
+      POSTGRES_DB: postgres
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    ports:
+      - "15432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./create-databases.sql:/docker-entrypoint-initdb.d/1-create-databases.sql
+      - ./init-db.sql:/docker-entrypoint-initdb.d/2-init-db.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d auth_db"]
+      interval: 2s
+      timeout: 5s
+      retries: 10
+    networks:
+      - healthcare-network
+
+  auth-service:
+    build: ./auth-service
+    container_name: auth-service
+    ports:
+      - "${AUTH_PORT}:3001"
+    environment:
+      PORT: 3001
+      NODE_ENV: ${NODE_ENV}
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres-db:5432/auth_db
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_EXPIRY: ${JWT_EXPIRY}
+    depends_on:
+      postgres-db:
+        condition: service_healthy
+    networks:
+      - healthcare-network
+
+  schedule-service:
+    build: ./schedule-service
+    container_name: schedule-service
+    ports:
+      - "${SCHEDULE_PORT}:3002"
+    environment:
+      PORT: 3002
+      NODE_ENV: ${NODE_ENV}
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres-db:5432/schedule_db
+      AUTH_SERVICE_URL: ${AUTH_SERVICE_URL}
+      REDIS_HOST: ${REDIS_HOST}
+      REDIS_PORT: ${REDIS_PORT}
+      NOTIFICATION_SERVICE_URL: ${NOTIFICATION_SERVICE_URL}
+    depends_on:
+      postgres-db:
+        condition: service_healthy
+      auth-service:
+        condition: service_started
+      redis:
+        condition: service_started
+    networks:
+      - healthcare-network
+
+  notification-service:
+    build: ./notification-service
+    container_name: notification-service
+    ports:
+      - "${NOTIFICATION_PORT}:3003"
+    environment:
+      PORT: 3003
+      NODE_ENV: ${NODE_ENV}
+      REDIS_HOST: ${REDIS_HOST}
+      REDIS_PORT: ${REDIS_PORT}
+      BREVO_API_KEY: ${BREVO_API_KEY}
+      BREVO_SENDER_EMAIL: ${BREVO_SENDER_EMAIL}
+    depends_on:
+      redis:
+        condition: service_started
+    networks:
+      - healthcare-network
+
+  redis:
+    image: redis:7-alpine
+    container_name: redis
+    ports:
+      - "16379:6379"
+    networks:
+      - healthcare-network
+
+volumes:
+  postgres_data:
+
+networks:
+  healthcare-network:
+    driver: bridge
